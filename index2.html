@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Golf Target Builder</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
+
+    #panel {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 5;
+      width: min(360px, calc(100vw - 24px));
+      background: rgba(255,255,255,0.96);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #panel header {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #title {
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+    #status {
+      font-size: 12px;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
+
+    #panel .content { padding: 10px 12px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    button {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: white;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    button:hover { background: rgba(0,0,0,0.04); }
+    button.primary { background: rgba(0, 122, 255, 0.12); border-color: rgba(0, 122, 255, 0.25); }
+    button.danger { background: rgba(255, 59, 48, 0.10); border-color: rgba(255, 59, 48, 0.25); }
+
+    .small { font-size: 12px; opacity: 0.9; }
+
+    #coordsBox {
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    #list {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.7);
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      padding: 8px 0;
+      border-bottom: 1px dashed rgba(0,0,0,0.12);
+    }
+    .item:last-child { border-bottom: none; }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(0,0,0,0.03);
+      margin-right: 6px;
+    }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+
+    .itemBtns { display: flex; gap: 6px; align-items: center; justify-content: flex-end; }
+    .itemBtns button { padding: 6px 8px; font-size: 12px; border-radius: 10px; }
+
+    #footer {
+      padding: 10px 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"]{
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .hint { font-size: 12px; opacity: 0.75; line-height: 1.35; }
+  </style>
+</head>
+<body>
+
+<div id="panel">
+  <header>
+    <div>
+      <div id="title">Golf Target Builder</div>
+      <div class="small">Click the map to capture a coordinate.</div>
+    </div>
+    <div id="status">Mode: <b id="modeLabel">Point</b></div>
+  </header>
+
+  <div class="content">
+    <div class="row">
+      <button class="primary" id="modePoint">Point</button>
+      <button id="modeTee">Tee</button>
+      <button id="modeGreen">Green</button>
+      <button id="modeHazard">Hazard</button>
+    </div>
+
+    <input id="labelInput" type="text" placeholder="Optional label (e.g., '100y layup', 'front bunker', 'pin')" />
+
+    <div id="coordsBox">
+      <div><b>Last click</b></div>
+      <div class="mono" id="lastCoords">Lat: —, Lng: —</div>
+      <div class="row" style="margin-top:8px;margin-bottom:0;">
+        <button id="copyLast" disabled>Copy last</button>
+        <button id="undo" class="danger" disabled>Undo last</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="holeView">Hole view</button>
+      <button id="greenView">Green view</button>
+      <button id="clearAll" class="danger">Clear all</button>
+    </div>
+
+    <div class="hint" style="margin-bottom:10px;">
+      Tip: Use <b>Hole view</b> after marking Tee + Green. Use <b>Green view</b> to zoom in tight on the green.
+    </div>
+
+    <div><b>Saved points</b> (<span id="count">0</span>)</div>
+    <div id="list"></div>
+  </div>
+
+  <div id="footer">
+    <button id="exportJson">Export JSON</button>
+    <button id="copyJson">Copy JSON</button>
+    <button id="downloadJson">Download</button>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<script>
+  // ----------------------------
+  // State
+  // ----------------------------
+  const state = {
+    mode: "POINT", // POINT | TEE | GREEN | HAZARD
+    lastClick: null, // {lat,lng}
+    points: [], // {id,type,label,lat,lng,ts,marker}
+  };
+
+  const TYPE_TAG = {
+    POINT: "Point",
+    TEE: "Tee",
+    GREEN: "Green",
+    HAZARD: "Hazard"
+  };
+
+  let map;
+  let infoWindow;
+
+  // ----------------------------
+  // Helpers
+  // ----------------------------
+  function setMode(mode) {
+    state.mode = mode;
+    document.getElementById("modeLabel").textContent = TYPE_TAG[mode] || mode;
+
+    // button styling
+    const btns = [
+      ["modePoint","POINT"],
+      ["modeTee","TEE"],
+      ["modeGreen","GREEN"],
+      ["modeHazard","HAZARD"]
+    ];
+    btns.forEach(([id, m]) => {
+      const b = document.getElementById(id);
+      if (m === mode) b.classList.add("primary");
+      else b.classList.remove("primary");
+    });
+  }
+
+  function fmt(n) { return Number(n).toFixed(6); }
+
+  function updateLastCoordsUI() {
+    const el = document.getElementById("lastCoords");
+    if (!state.lastClick) {
+      el.textContent = "Lat: —, Lng: —";
+      document.getElementById("copyLast").disabled = true;
+      return;
+    }
+    el.textContent = `Lat: ${fmt(state.lastClick.lat)}, Lng: ${fmt(state.lastClick.lng)}`;
+    document.getElementById("copyLast").disabled = false;
+  }
+
+  function updateListUI() {
+    const list = document.getElementById("list");
+    const count = document.getElementById("count");
+    count.textContent = String(state.points.length);
+
+    list.innerHTML = "";
+    if (state.points.length === 0) {
+      list.innerHTML = `<div class="hint">No points yet. Click the map to add one.</div>`;
+      document.getElementById("undo").disabled = true;
+      return;
+    }
+
+    document.getElementById("undo").disabled = false;
+
+    state.points.slice().reverse().forEach((p) => {
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const left = document.createElement("div");
+      const tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = TYPE_TAG[p.type] || p.type;
+
+      const label = document.createElement("span");
+      label.textContent = p.label ? p.label : "(no label)";
+      label.style.fontWeight = "700";
+
+      const coords = document.createElement("div");
+      coords.className = "mono";
+      coords.textContent = `${fmt(p.lat)}, ${fmt(p.lng)}`;
+
+      left.appendChild(tag);
+      left.appendChild(label);
+      left.appendChild(document.createElement("div")).appendChild(coords);
+
+      const right = document.createElement("div");
+      right.className = "itemBtns";
+
+      const goBtn = document.createElement("button");
+      goBtn.textContent = "Go";
+      goBtn.onclick = () => {
+        map.panTo({ lat: p.lat, lng: p.lng });
+        map.setZoom(Math.max(map.getZoom(), 19));
+      };
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.onclick = () => copyText(`${fmt(p.lat)}, ${fmt(p.lng)}`);
+
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "Del";
+      delBtn.className = "danger";
+      delBtn.onclick = () => deletePoint(p.id);
+
+      right.appendChild(goBtn);
+      right.appendChild(copyBtn);
+      right.appendChild(delBtn);
+
+      item.appendChild(left);
+      item.appendChild(right);
+
+      list.appendChild(item);
+    });
+  }
+
+  function makeMarkerColor(type) {
+    // Keep it simple; Google marker styling is limited without custom icons.
+    // We'll just vary label letter to distinguish.
+    const letter = type === "TEE" ? "T" : type === "GREEN" ? "G" : type === "HAZARD" ? "H" : "•";
+    return letter;
+  }
+
+  function addPoint(lat, lng) {
+    const labelInput = document.getElementById("labelInput");
+    const label = (labelInput.value || "").trim();
+    labelInput.value = "";
+
+    const id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+    const type = state.mode;
+
+    const marker = new google.maps.Marker({
+      position: { lat, lng },
+      map,
+      label: {
+        text: makeMarkerColor(type),
+        fontWeight: "700"
+      }
+    });
+
+    marker.addListener("click", () => {
+      const content = `
+        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+          <div><b>${TYPE_TAG[type] || type}</b> ${label ? "— " + escapeHtml(label) : ""}</div>
+          <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono',monospace;">
+            ${fmt(lat)}, ${fmt(lng)}
+          </div>
+        </div>`;
+      infoWindow.setContent(content);
+      infoWindow.open(map, marker);
+    });
+
+    state.points.push({
+      id, type, label, lat, lng, ts: new Date().toISOString(), marker
+    });
+
+    updateListUI();
+  }
+
+  function deletePoint(id) {
+    const idx = state.points.findIndex(p => p.id === id);
+    if (idx === -1) return;
+    const p = state.points[idx];
+    if (p.marker) p.marker.setMap(null);
+    state.points.splice(idx, 1);
+    updateListUI();
+  }
+
+  function undoLast() {
+    if (state.points.length === 0) return;
+    const p = state.points[state.points.length - 1];
+    deletePoint(p.id);
+  }
+
+  function clearAll() {
+    state.points.forEach(p => p.marker && p.marker.setMap(null));
+    state.points = [];
+    updateListUI();
+  }
+
+  function getTeeGreen() {
+    const tee = state.points.find(p => p.type === "TEE");
+    const green = state.points.find(p => p.type === "GREEN");
+    return { tee, green };
+  }
+
+  function holeView() {
+    const { tee, green } = getTeeGreen();
+    if (!tee || !green) {
+      alert("Mark Tee and Green first.");
+      return;
+    }
+    const bounds = new google.maps.LatLngBounds();
+    bounds.extend({ lat: tee.lat, lng: tee.lng });
+    bounds.extend({ lat: green.lat, lng: green.lng });
+    // Include any saved points too (optional)
+    state.points.forEach(p => bounds.extend({ lat: p.lat, lng: p.lng }));
+    map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+  }
+
+  function greenView() {
+    const { green } = getTeeGreen();
+    if (!green) {
+      alert("Mark Green first.");
+      return;
+    }
+    map.panTo({ lat: green.lat, lng: green.lng });
+    map.setZoom(20);
+  }
+
+  function exportData() {
+    // Minimal structure that’s easy to feed into other tools later
+    const data = {
+      createdAt: new Date().toISOString(),
+      tee: state.points.find(p => p.type === "TEE") ? pickPoint(state.points.find(p => p.type === "TEE")) : null,
+      green: state.points.find(p => p.type === "GREEN") ? pickPoint(state.points.find(p => p.type === "GREEN")) : null,
+      hazards: state.points.filter(p => p.type === "HAZARD").map(pickPoint),
+      points: state.points.filter(p => p.type === "POINT").map(pickPoint),
+      all: state.points.map(pickPoint)
+    };
+    return data;
+  }
+
+  function pickPoint(p) {
+    return { type: p.type, label: p.label || "", lat: +fmt(p.lat), lng: +fmt(p.lng), ts: p.ts };
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert("Copied to clipboard.");
+    } catch (e) {
+      // fallback
+      prompt("Copy:", text);
+    }
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    }[m]));
+  }
+
+  // ----------------------------
+  // Init Map (Google callback)
+  // ----------------------------
+  function initMap() {
+    // Start location (change as you like)
+    const start = { lat: 40.2945, lng: -74.6168 };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+      center: start,
+      zoom: 18,
+      mapTypeId: "satellite",
+      tilt: 0,
+      mapTypeControl: true,
+      streetViewControl: false,
+      fullscreenControl: false
+    });
+
+    infoWindow = new google.maps.InfoWindow();
+
+    map.addListener("click", (e) => {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      state.lastClick = { lat, lng };
+      updateLastCoordsUI();
+      addPoint(lat, lng);
+    });
+
+    // Wire UI
+    document.getElementById("modePoint").onclick = () => setMode("POINT");
+    document.getElementById("modeTee").onclick = () => setMode("TEE");
+    document.getElementById("modeGreen").onclick = () => setMode("GREEN");
+    document.getElementById("modeHazard").onclick = () => setMode("HAZARD");
+
+    document.getElementById("copyLast").onclick = () => {
+      if (!state.lastClick) return;
+      copyText(`${fmt(state.lastClick.lat)}, ${fmt(state.lastClick.lng)}`);
+    };
+
+    document.getElementById("undo").onclick = undoLast;
+    document.getElementById("clearAll").onclick = () => {
+      if (confirm("Clear all markers and points?")) clearAll();
+    };
+
+    document.getElementById("holeView").onclick = holeView;
+    document.getElementById("greenView").onclick = greenView;
+
+    document.getElementById("exportJson").onclick = () => {
+      const json = JSON.stringify(exportData(), null, 2);
+      alert("JSON generated. Use Copy JSON or Download.");
+      console.log(json);
+    };
+
+    document.getElementById("copyJson").onclick = () => {
+      const json = JSON.stringify(exportData(), null, 2);
+      copyText(json);
+    };
+
+    document.getElementById("downloadJson").onclick = () => {
+      const json = JSON.stringify(exportData(), null, 2);
+      const name = `targets_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;
+      downloadText(name, json);
+    };
+
+    // Initial state
+    setMode("POINT");
+    updateLastCoordsUI();
+    updateListUI();
+  }
+
+  // Expose callback globally for Google
+  window.initMap = initMap;
+</script>
+
+<!-- Replace YOUR_API_KEY_HERE -->
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY_HERE&callback=initMap" async defer></script>
+</body>
+</html>
