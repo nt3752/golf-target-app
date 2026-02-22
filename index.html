@@ -1,0 +1,49 @@
+let map;
+let tee = null;
+let green = null;
+let mode = null;
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 40.2945, lng: -74.6168 },
+    zoom: 18,
+    mapTypeId: "satellite"
+  });
+
+  map.addListener("click", (e) => {
+    if (!mode) return;
+
+    const coord = {
+      lat: e.latLng.lat(),
+      lng: e.latLng.lng()
+    };
+
+    if (mode === "tee") {
+      tee = coord;
+      dropMarker(coord);
+    }
+
+    if (mode === "green") {
+      green = coord;
+      dropMarker(coord);
+    }
+
+    mode = null;
+  });
+
+  document.getElementById("markTee").onclick = () => mode = "tee";
+  document.getElementById("markGreen").onclick = () => mode = "green";
+
+  document.getElementById("export").onclick = () => {
+    const data = { tee, green };
+    document.getElementById("output").textContent =
+      JSON.stringify(data, null, 2);
+  };
+}
+
+function dropMarker(position) {
+  new google.maps.Marker({
+    position,
+    map
+  });
+}
