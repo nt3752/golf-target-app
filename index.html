@@ -1,483 +1,400 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.4">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Golf Target Builder (OSM)</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
+
+    #panel {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      width: min(360px, calc(100vw - 24px));
+      background: rgba(255,255,255,0.96);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #panel header {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #title { font-weight: 800; font-size: 14px; }
+    #modeLabel { font-weight: 800; }
+
+    #panel .content { padding: 10px 12px; }
+
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    button {
+      border: 1px solid rgba(0,0,0,0.12);
+      background: white;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+    button:hover { background: rgba(0,0,0,0.04); }
+    button.primary { background: rgba(0, 122, 255, 0.12); border-color: rgba(0, 122, 255, 0.25); }
+    button.danger { background: rgba(255, 59, 48, 0.10); border-color: rgba(255, 59, 48, 0.25); }
+
+    input[type="text"]{
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,0,0,0.12);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    #coordsBox {
+      background: rgba(0,0,0,0.04);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    #list {
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.7);
+      font-size: 13px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px 10px;
+      padding: 8px 0;
+      border-bottom: 1px dashed rgba(0,0,0,0.12);
+    }
+    .item:last-child { border-bottom: none; }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.10);
+      background: rgba(0,0,0,0.03);
+      margin-right: 6px;
+    }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }
+    .itemBtns { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+    .itemBtns button { padding: 6px 8px; font-size: 12px; }
+
+    #footer {
+      padding: 10px 12px;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hint { font-size: 12px; opacity: 0.75; line-height: 1.35; }
   </style>
 </head>
+
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="utf-8" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Golf Target Builder (OSM)&lt;/title&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Leaflet (map library) --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link</p>
-<p class="p1"><span class="Apple-converted-space">    </span>rel="stylesheet"</p>
-<p class="p1"><span class="Apple-converted-space">    </span>href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"</p>
-<p class="p1"><span class="Apple-converted-space">    </span>integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="</p>
-<p class="p1"><span class="Apple-converted-space">    </span>crossorigin=""</p>
-<p class="p1"><span class="Apple-converted-space">  </span>/&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;script</p>
-<p class="p1"><span class="Apple-converted-space">    </span>src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"</p>
-<p class="p1"><span class="Apple-converted-space">    </span>integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="</p>
-<p class="p1"><span class="Apple-converted-space">    </span>crossorigin=""</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&gt;&lt;/script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>html, body { height: 100%; margin: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>#map { height: 100%; width: 100%; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#panel {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>position: absolute;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>top: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>left: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>z-index: 1000;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>width: min(360px, calc(100vw - 24px));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: rgba(255,255,255,0.96);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 14px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>box-shadow: 0 6px 18px rgba(0,0,0,0.25);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>overflow: hidden;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#panel header {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 10px 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-bottom: 1px solid rgba(0,0,0,0.08);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>justify-content: space-between;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>gap: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#title { font-weight: 800; font-size: 14px; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>#modeLabel { font-weight: 800; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#panel .content { padding: 10px 12px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>button {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(0,0,0,0.12);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: white;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 8px 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>cursor: pointer;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>user-select: none;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>button:hover { background: rgba(0,0,0,0.04); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>button.primary { background: rgba(0, 122, 255, 0.12); border-color: rgba(0, 122, 255, 0.25); }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>button.danger { background: rgba(255, 59, 48, 0.10); border-color: rgba(255, 59, 48, 0.25); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>input[type="text"]{</p>
-<p class="p1"><span class="Apple-converted-space">      </span>width: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>box-sizing: border-box;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 8px 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(0,0,0,0.12);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>margin-bottom: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#coordsBox {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: rgba(0,0,0,0.04);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(0,0,0,0.08);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 8px 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-size: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>margin-bottom: 10px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#list {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>max-height: 220px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>overflow: auto;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(0,0,0,0.08);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 8px 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: rgba(255,255,255,0.7);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-size: 13px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.item {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>display: grid;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>grid-template-columns: 1fr auto;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>gap: 6px 10px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 8px 0;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-bottom: 1px dashed rgba(0,0,0,0.12);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.item:last-child { border-bottom: none; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.tag {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>display: inline-block;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-size: 11px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>font-weight: 800;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 2px 8px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-radius: 999px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border: 1px solid rgba(0,0,0,0.10);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>background: rgba(0,0,0,0.03);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>margin-right: 6px;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size: 12px; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.itemBtns { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>.itemBtns button { padding: 6px 8px; font-size: 12px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>#footer {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>padding: 10px 12px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>border-top: 1px solid rgba(0,0,0,0.08);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>gap: 8px;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>flex-wrap: wrap;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>justify-content: space-between;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>.hint { font-size: 12px; opacity: 0.75; line-height: 1.35; }</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;header&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="title"&gt;Golf Target Builder (OSM)&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="hint"&gt;Click the map to save a coordinate.&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div&gt;Mode: &lt;span id="modeLabel"&gt;Point&lt;/span&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="content"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="primary" id="modePoint"&gt;Point&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="modeTee"&gt;Tee&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="modeGreen"&gt;Green&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="modeHazard"&gt;Hazard&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;input id="labelInput" type="text" placeholder="Optional label (e.g., '100y layup', 'front bunker')" /&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="coordsBox"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div&gt;&lt;b&gt;Last click&lt;/b&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="mono" id="lastCoords"&gt;Lat: —, Lng: —&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="row" style="margin-top:8px;margin-bottom:0;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;button id="copyLast" disabled&gt;Copy last&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;button id="undo" class="danger" disabled&gt;Undo last&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="holeView"&gt;Hole view&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="greenView"&gt;Green view&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="clearAll" class="danger"&gt;Clear all&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="hint" style="margin-bottom:10px;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>Tip: Mark &lt;b&gt;Tee&lt;/b&gt; and &lt;b&gt;Green&lt;/b&gt;, then use &lt;b&gt;Hole view&lt;/b&gt; to fit them both.</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div&gt;&lt;b&gt;Saved points&lt;/b&gt; (&lt;span id="count"&gt;0&lt;/span&gt;)&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="list"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="footer"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="copyJson"&gt;Copy JSON&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;button id="downloadJson"&gt;Download JSON&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;div id="map"&gt;&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// State</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const TYPE_TAG = { POINT:"Point", TEE:"Tee", GREEN:"Green", HAZARD:"Hazard" };</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>const state = {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>mode: "POINT",</p>
-<p class="p1"><span class="Apple-converted-space">      </span>lastClick: null,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>points: [] // {id,type,label,lat,lng,ts,marker}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Map init</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Start location: Mercer Oaks area (edit anytime)</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const startLatLng = [40.2938, -74.6177];</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const map = L.map("map", { zoomControl: true }).setView(startLatLng, 16);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// OSM tiles (standard)</p>
-<p class="p1"><span class="Apple-converted-space">    </span>L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>maxZoom: 19,</p>
-<p class="p1"><span class="Apple-converted-space">      </span>attribution: "&amp;copy; OpenStreetMap contributors"</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}).addTo(map);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// UI helpers</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>function fmt(n){ return Number(n).toFixed(6); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function setMode(mode){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.mode = mode;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById("modeLabel").textContent = TYPE_TAG[mode] || mode;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>const btns = [</p>
-<p class="p1"><span class="Apple-converted-space">        </span>["modePoint","POINT"],</p>
-<p class="p1"><span class="Apple-converted-space">        </span>["modeTee","TEE"],</p>
-<p class="p1"><span class="Apple-converted-space">        </span>["modeGreen","GREEN"],</p>
-<p class="p1"><span class="Apple-converted-space">        </span>["modeHazard","HAZARD"]</p>
-<p class="p1"><span class="Apple-converted-space">      </span>];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>btns.forEach(([id,m])=&gt;{</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const b = document.getElementById(id);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (m === mode) b.classList.add("primary");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>else b.classList.remove("primary");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateLastCoordsUI(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const el = document.getElementById("lastCoords");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(!state.lastClick){</p>
-<p class="p1"><span class="Apple-converted-space">        </span>el.textContent = "Lat: —, Lng: —";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>document.getElementById("copyLast").disabled = true;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>el.textContent = `Lat: ${fmt(state.lastClick.lat)}, Lng: ${fmt(state.lastClick.lng)}`;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById("copyLast").disabled = false;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateListUI(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById("count").textContent = String(state.points.length);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const list = document.getElementById("list");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>list.innerHTML = "";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.getElementById("undo").disabled = state.points.length === 0;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(state.points.length === 0){</p>
-<p class="p1"><span class="Apple-converted-space">        </span>list.innerHTML = `&lt;div class="hint"&gt;No points yet. Click the map to add one.&lt;/div&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points.slice().reverse().forEach((p)=&gt;{</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const item = document.createElement("div");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>item.className = "item";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const left = document.createElement("div");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>left.innerHTML = `</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;span class="tag"&gt;${TYPE_TAG[p.type] || p.type}&lt;/span&gt;&lt;b&gt;${escapeHtml(p.label || "(no label)")}&lt;/b&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="mono"&gt;${fmt(p.lat)}, ${fmt(p.lng)}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>`;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const right = document.createElement("div");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>right.className = "itemBtns";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const goBtn = document.createElement("button");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>goBtn.textContent = "Go";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>goBtn.onclick = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">          </span>map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18));</p>
-<p class="p1"><span class="Apple-converted-space">          </span>p.marker.openPopup();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const copyBtn = document.createElement("button");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>copyBtn.textContent = "Copy";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>copyBtn.onclick = () =&gt; copyText(`${fmt(p.lat)}, ${fmt(p.lng)}`);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const delBtn = document.createElement("button");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delBtn.textContent = "Del";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delBtn.className = "danger";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>delBtn.onclick = () =&gt; deletePoint(p.id);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>right.append(goBtn, copyBtn, delBtn);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>item.append(left, right);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>list.appendChild(item);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function escapeHtml(str){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return String(str).replace(/[&amp;&lt;&gt;"']/g, (m)=&gt;({</p>
-<p class="p1"><span class="Apple-converted-space">        </span>"&amp;":"&amp;amp;","&lt;":"&amp;lt;","&gt;":"&amp;gt;",'"':"&amp;quot;","'":"&amp;#039;"</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}[m]));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function id(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function addPoint(lat, lng){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const labelInput = document.getElementById("labelInput");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const label = (labelInput.value || "").trim();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>labelInput.value = "";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>const type = state.mode;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const pointId = id();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>// Different emoji icons for quick visual distinction</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const emoji = type === "TEE" ? "🏁" : type === "GREEN" ? "⛳" : type === "HAZARD" ? "⚠️" : "📍";</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>const marker = L.marker([lat, lng]).addTo(map);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>marker.bindPopup(`</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div&gt;&lt;b&gt;${emoji} ${TYPE_TAG[type] || type}&lt;/b&gt; ${label ? "— " + escapeHtml(label) : ""}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="mono"&gt;${fmt(lat)}, ${fmt(lng)}&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>`);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points.push({</p>
-<p class="p1"><span class="Apple-converted-space">        </span>id: pointId,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>type,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>label,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>lat,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>lng,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ts: new Date().toISOString(),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>marker</p>
-<p class="p1"><span class="Apple-converted-space">      </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>updateListUI();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function deletePoint(pointId){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const idx = state.points.findIndex(p =&gt; p.id === pointId);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(idx === -1) return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const p = state.points[idx];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>map.removeLayer(p.marker);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points.splice(idx, 1);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>updateListUI();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function undoLast(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(state.points.length === 0) return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>deletePoint(state.points[state.points.length - 1].id);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function clearAll(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points.forEach(p =&gt; map.removeLayer(p.marker));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points = [];</p>
-<p class="p1"><span class="Apple-converted-space">      </span>updateListUI();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function getTeeGreen(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>tee: state.points.find(p =&gt; p.type === "TEE") || null,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>green: state.points.find(p =&gt; p.type === "GREEN") || null</p>
-<p class="p1"><span class="Apple-converted-space">      </span>};</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function holeView(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const { tee, green } = getTeeGreen();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(!tee || !green){</p>
-<p class="p1"><span class="Apple-converted-space">        </span>alert("Mark Tee and Green first.");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const bounds = L.latLngBounds([[tee.lat, tee.lng], [green.lat, green.lng]]);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>// include other points too</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.points.forEach(p =&gt; bounds.extend([p.lat, p.lng]));</p>
-<p class="p1"><span class="Apple-converted-space">      </span>map.fitBounds(bounds, { padding: [40, 40] });</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function greenView(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const { green } = getTeeGreen();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(!green){</p>
-<p class="p1"><span class="Apple-converted-space">        </span>alert("Mark Green first.");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">      </span>map.setView([green.lat, green.lng], 19);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function exportData(){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const tee = state.points.find(p =&gt; p.type === "TEE");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const green = state.points.find(p =&gt; p.type === "GREEN");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>createdAt: new Date().toISOString(),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>tee: tee ? pick(tee) : null,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>green: green ? pick(green) : null,</p>
-<p class="p1"><span class="Apple-converted-space">        </span>hazards: state.points.filter(p =&gt; p.type === "HAZARD").map(pick),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>points: state.points.filter(p =&gt; p.type === "POINT").map(pick),</p>
-<p class="p1"><span class="Apple-converted-space">        </span>all: state.points.map(pick)</p>
-<p class="p1"><span class="Apple-converted-space">      </span>};</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function pick(p){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>return { type: p.type, label: p.label || "", lat: +fmt(p.lat), lng: +fmt(p.lng), ts: p.ts };</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>async function copyText(text){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>try{</p>
-<p class="p1"><span class="Apple-converted-space">        </span>await navigator.clipboard.writeText(text);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>alert("Copied to clipboard.");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>} catch {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>prompt("Copy:", text);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function downloadText(filename, text){</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const blob = new Blob([text], { type: "application/json" });</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const url = URL.createObjectURL(blob);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const a = document.createElement("a");</p>
-<p class="p1"><span class="Apple-converted-space">      </span>a.href = url;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>a.download = filename;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>document.body.appendChild(a);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>a.click();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>a.remove();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>URL.revokeObjectURL(url);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Map click handler</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>map.on("click", (e) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const lat = e.latlng.lat;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const lng = e.latlng.lng;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>state.lastClick = { lat, lng };</p>
-<p class="p1"><span class="Apple-converted-space">      </span>updateLastCoordsUI();</p>
-<p class="p1"><span class="Apple-converted-space">      </span>addPoint(lat, lng);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Wire UI</p>
-<p class="p1"><span class="Apple-converted-space">    </span>// ----------------------------</p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("modePoint").onclick = () =&gt; setMode("POINT");</p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("modeTee").onclick = () =&gt; setMode("TEE");</p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("modeGreen").onclick = () =&gt; setMode("GREEN");</p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("modeHazard").onclick = () =&gt; setMode("HAZARD");</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("copyLast").onclick = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(!state.lastClick) return;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>copyText(`${fmt(state.lastClick.lat)}, ${fmt(state.lastClick.lng)}`);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("undo").onclick = undoLast;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("clearAll").onclick = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>if(confirm("Clear all markers and points?")) clearAll();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("holeView").onclick = holeView;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("greenView").onclick = greenView;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("copyJson").onclick = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const json = JSON.stringify(exportData(), null, 2);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>copyText(json);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>document.getElementById("downloadJson").onclick = () =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const json = JSON.stringify(exportData(), null, 2);</p>
-<p class="p1"><span class="Apple-converted-space">      </span>const name = `targets_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>downloadText(name, json);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// Initial UI</p>
-<p class="p1"><span class="Apple-converted-space">    </span>setMode("POINT");</p>
-<p class="p1"><span class="Apple-converted-space">    </span>updateLastCoordsUI();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>updateListUI();</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+  <div id="panel">
+    <header>
+      <div>
+        <div id="title">Golf Target Builder (OSM)</div>
+        <div class="hint">Click the map to save a coordinate.</div>
+      </div>
+      <div>Mode: <span id="modeLabel">Point</span></div>
+    </header>
+
+    <div class="content">
+      <div class="row">
+        <button class="primary" id="modePoint">Point</button>
+        <button id="modeTee">Tee</button>
+        <button id="modeGreen">Green</button>
+        <button id="modeHazard">Hazard</button>
+      </div>
+
+      <input id="labelInput" type="text" placeholder="Optional label (e.g., '100y layup', 'front bunker')" />
+
+      <div id="coordsBox">
+        <div><b>Last click</b></div>
+        <div class="mono" id="lastCoords">Lat: —, Lng: —</div>
+        <div class="row" style="margin-top:8px;margin-bottom:0;">
+          <button id="copyLast" disabled>Copy last</button>
+          <button id="undo" class="danger" disabled>Undo last</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="holeView">Hole view</button>
+        <button id="greenView">Green view</button>
+        <button id="clearAll" class="danger">Clear all</button>
+      </div>
+
+      <div class="hint" style="margin-bottom:10px;">
+        Tip: Mark <b>Tee</b> and <b>Green</b>, then use <b>Hole view</b> to fit them both.
+      </div>
+
+      <div><b>Saved points</b> (<span id="count">0</span>)</div>
+      <div id="list"></div>
+    </div>
+
+    <div id="footer">
+      <button id="copyJson">Copy JSON</button>
+      <button id="downloadJson">Download JSON</button>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    const TYPE_TAG = { POINT:"Point", TEE:"Tee", GREEN:"Green", HAZARD:"Hazard" };
+    const state = { mode: "POINT", lastClick: null, points: [] };
+
+    // Start location (edit anytime)
+    const startLatLng = [40.2938, -74.6177];
+    const map = L.map("map", { zoomControl: true }).setView(startLatLng, 16);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    function fmt(n){ return Number(n).toFixed(6); }
+
+    function setMode(mode){
+      state.mode = mode;
+      document.getElementById("modeLabel").textContent = TYPE_TAG[mode] || mode;
+
+      const btns = [
+        ["modePoint","POINT"],
+        ["modeTee","TEE"],
+        ["modeGreen","GREEN"],
+        ["modeHazard","HAZARD"]
+      ];
+      btns.forEach(([id,m])=>{
+        const b = document.getElementById(id);
+        if (m === mode) b.classList.add("primary");
+        else b.classList.remove("primary");
+      });
+    }
+
+    function updateLastCoordsUI(){
+      const el = document.getElementById("lastCoords");
+      if(!state.lastClick){
+        el.textContent = "Lat: —, Lng: —";
+        document.getElementById("copyLast").disabled = true;
+        return;
+      }
+      el.textContent = `Lat: ${fmt(state.lastClick.lat)}, Lng: ${fmt(state.lastClick.lng)}`;
+      document.getElementById("copyLast").disabled = false;
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"']/g, (m)=>({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+      }[m]));
+    }
+
+    function id(){
+      return (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+    }
+
+    function updateListUI(){
+      document.getElementById("count").textContent = String(state.points.length);
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+      document.getElementById("undo").disabled = state.points.length === 0;
+
+      if(state.points.length === 0){
+        list.innerHTML = `<div class="hint">No points yet. Click the map to add one.</div>`;
+        return;
+      }
+
+      state.points.slice().reverse().forEach((p)=>{
+        const item = document.createElement("div");
+        item.className = "item";
+
+        const left = document.createElement("div");
+        left.innerHTML = `
+          <div><span class="tag">${TYPE_TAG[p.type] || p.type}</span><b>${escapeHtml(p.label || "(no label)")}</b></div>
+          <div class="mono">${fmt(p.lat)}, ${fmt(p.lng)}</div>
+        `;
+
+        const right = document.createElement("div");
+        right.className = "itemBtns";
+
+        const goBtn = document.createElement("button");
+        goBtn.textContent = "Go";
+        goBtn.onclick = () => {
+          map.setView([p.lat, p.lng], Math.max(map.getZoom(), 18));
+          p.marker.openPopup();
+        };
+
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "Copy";
+        copyBtn.onclick = () => copyText(`${fmt(p.lat)}, ${fmt(p.lng)}`);
+
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "Del";
+        delBtn.className = "danger";
+        delBtn.onclick = () => deletePoint(p.id);
+
+        right.append(goBtn, copyBtn, delBtn);
+        item.append(left, right);
+        list.appendChild(item);
+      });
+    }
+
+    function addPoint(lat, lng){
+      const labelInput = document.getElementById("labelInput");
+      const label = (labelInput.value || "").trim();
+      labelInput.value = "";
+
+      const type = state.mode;
+      const pointId = id();
+      const emoji = type === "TEE" ? "🏁" : type === "GREEN" ? "⛳" : type === "HAZARD" ? "⚠️" : "📍";
+
+      const marker = L.marker([lat, lng]).addTo(map);
+      marker.bindPopup(`
+        <div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;">
+          <div><b>${emoji} ${TYPE_TAG[type] || type}</b> ${label ? "— " + escapeHtml(label) : ""}</div>
+          <div class="mono">${fmt(lat)}, ${fmt(lng)}</div>
+        </div>
+      `);
+
+      state.points.push({ id: pointId, type, label, lat, lng, ts: new Date().toISOString(), marker });
+      updateListUI();
+    }
+
+    function deletePoint(pointId){
+      const idx = state.points.findIndex(p => p.id === pointId);
+      if(idx === -1) return;
+      map.removeLayer(state.points[idx].marker);
+      state.points.splice(idx, 1);
+      updateListUI();
+    }
+
+    function undoLast(){
+      if(state.points.length === 0) return;
+      deletePoint(state.points[state.points.length - 1].id);
+    }
+
+    function clearAll(){
+      state.points.forEach(p => map.removeLayer(p.marker));
+      state.points = [];
+      updateListUI();
+    }
+
+    function getTeeGreen(){
+      return {
+        tee: state.points.find(p => p.type === "TEE") || null,
+        green: state.points.find(p => p.type === "GREEN") || null
+      };
+    }
+
+    function holeView(){
+      const { tee, green } = getTeeGreen();
+      if(!tee || !green){ alert("Mark Tee and Green first."); return; }
+      const bounds = L.latLngBounds([[tee.lat, tee.lng], [green.lat, green.lng]]);
+      state.points.forEach(p => bounds.extend([p.lat, p.lng]));
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+
+    function greenView(){
+      const { green } = getTeeGreen();
+      if(!green){ alert("Mark Green first."); return; }
+      map.setView([green.lat, green.lng], 19);
+    }
+
+    async function copyText(text){
+      try{ await navigator.clipboard.writeText(text); alert("Copied to clipboard."); }
+      catch { prompt("Copy:", text); }
+    }
+
+    function exportData(){
+      const tee = state.points.find(p => p.type === "TEE");
+      const green = state.points.find(p => p.type === "GREEN");
+      const pick = (p) => ({ type: p.type, label: p.label || "", lat: +fmt(p.lat), lng: +fmt(p.lng), ts: p.ts });
+
+      return {
+        createdAt: new Date().toISOString(),
+        tee: tee ? pick(tee) : null,
+        green: green ? pick(green) : null,
+        hazards: state.points.filter(p => p.type === "HAZARD").map(pick),
+        points: state.points.filter(p => p.type === "POINT").map(pick),
+        all: state.points.map(pick)
+      };
+    }
+
+    function downloadText(filename, text){
+      const blob = new Blob([text], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    map.on("click", (e) => {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      state.lastClick = { lat, lng };
+      updateLastCoordsUI();
+      addPoint(lat, lng);
+    });
+
+    document.getElementById("modePoint").onclick = () => setMode("POINT");
+    document.getElementById("modeTee").onclick = () => setMode("TEE");
+    document.getElementById("modeGreen").onclick = () => setMode("GREEN");
+    document.getElementById("modeHazard").onclick = () => setMode("HAZARD");
+    document.getElementById("copyLast").onclick = () => state.lastClick && copyText(`${fmt(state.lastClick.lat)}, ${fmt(state.lastClick.lng)}`);
+    document.getElementById("undo").onclick = undoLast;
+    document.getElementById("clearAll").onclick = () => confirm("Clear all markers and points?") && clearAll();
+    document.getElementById("holeView").onclick = holeView;
+    document.getElementById("greenView").onclick = greenView;
+    document.getElementById("copyJson").onclick = () => copyText(JSON.stringify(exportData(), null, 2));
+    document.getElementById("downloadJson").onclick = () => {
+      const json = JSON.stringify(exportData(), null, 2);
+      const name = `targets_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;
+      downloadText(name, json);
+    };
+
+    setMode("POINT");
+    updateLastCoordsUI();
+    updateListUI();
+  </script>
 </body>
 </html>
