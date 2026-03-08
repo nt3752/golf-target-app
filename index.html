@@ -542,12 +542,13 @@
     position: fixed;
     bottom: 20px;
     right: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.88);
+    border: 1.5px solid rgba(255,255,255,0.2);
     border-radius: var(--radius);
     padding: 10px 16px;
-    font-size: 0.78rem;
-    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
     z-index: 9999;
     opacity: 0;
     transform: translateY(8px);
@@ -556,8 +557,9 @@
     max-width: 300px;
   }
   #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.ok   { border-color: var(--green); color: var(--green); }
-  #toast.err  { border-color: var(--red);   color: var(--red);   }
+  #toast.ok   { border-color: #4ade80; color: #4ade80; }
+  #toast.err  { border-color: #f87171; color: #f87171; }
+  #toast.warn { border-color: #fbbf24; color: #fbbf24; }
 
   /* ── Spine markers legend ────────────────────────── */
   .legend {
@@ -611,40 +613,70 @@
 /* ── Viewer additions ─────────────────────────── */
 #viewerHeader {
   position:fixed;top:0;left:0;right:0;z-index:100;height:48px;
-  background:rgba(13,15,18,0.97);backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,0.88);backdrop-filter:blur(10px);
+  border-bottom:1px solid rgba(255,255,255,0.12);
   display:none;align-items:center;gap:8px;padding:0 10px;
 }
-#vCourseName{font-size:0.85rem;font-weight:800;color:var(--green);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#vHoleInfo{font-size:0.7rem;font-weight:700;color:var(--muted);text-align:right;flex-shrink:0;line-height:1.4;}
-#vHoleInfo span{color:var(--text);}
+#vCourseName{font-size:0.85rem;font-weight:800;color:#4ade80;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#vHoleInfo{font-size:0.72rem;font-weight:800;color:rgba(255,255,255,0.55);text-align:right;flex-shrink:0;line-height:1.4;}
+#vHoleInfo span{color:#fff;}
 #viewerMap{position:fixed;top:48px;left:0;right:0;bottom:calc(56px + 68px);}
-#vLayers{position:fixed;top:56px;right:8px;z-index:200;display:none;flex-direction:column;gap:5px;}
-.vlbtn{width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:0.6rem;font-weight:800;letter-spacing:0.3px;color:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;text-transform:uppercase;line-height:1.2;text-align:center;transition:all 0.2s;}
-.vlbtn.on{color:#fff;border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.18);}
-.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.22);}
-.vlbtn.on.v-tgt{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.22);}
-.vlbtn.on.v-plan{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.22);}
-.vlbtn.on.v-elev{border-color:#34d399;color:#34d399;background:rgba(52,211,153,0.22);}
-#vGpsBtn{position:fixed;top:56px;left:8px;z-index:200;width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:1.1rem;display:none;align-items:center;justify-content:center;transition:all 0.2s;}
-#vGpsBtn.active{border-color:var(--green);background:rgba(34,197,94,0.22);color:var(--green);}
-#vGpsBtn.searching{border-color:#fbbf24;background:rgba(251,191,36,0.22);}
-#vDistBar{position:fixed;left:0;right:0;bottom:56px;height:68px;background:rgba(13,15,18,0.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:none;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 4px;}
+#vLayers{position:fixed;top:56px;right:8px;z-index:200;display:none;flex-direction:column;gap:6px;}
+/* Layer toggle buttons — OFF: clearly dimmed, ON: bright + colored */
+.vlbtn{
+  width:44px;height:44px;
+  background:rgba(0,0,0,0.55);
+  border:2px solid rgba(255,255,255,0.18);
+  border-radius:9px;cursor:pointer;
+  font-size:0.62rem;font-weight:900;letter-spacing:0.4px;
+  color:rgba(255,255,255,0.32);
+  display:flex;align-items:center;justify-content:center;
+  text-transform:uppercase;line-height:1.2;text-align:center;
+  transition:all 0.15s;
+}
+.vlbtn.on{
+  border-width:2px;
+  color:#fff;
+  background:rgba(255,255,255,0.18);
+  border-color:rgba(255,255,255,0.55);
+}
+.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.28);}
+.vlbtn.on.v-tgt  {border-color:#22d3ee;color:#22d3ee;background:rgba(34,211,238,0.28);}
+.vlbtn.on.v-plan {border-color:#93c5fd;color:#93c5fd;background:rgba(147,197,253,0.28);}
+.vlbtn.on.v-elev {border-color:#4ade80;color:#4ade80;background:rgba(74,222,128,0.28);}
+
+/* GPS button */
+#vGpsBtn{
+  position:fixed;top:56px;left:8px;z-index:200;
+  width:44px;height:44px;
+  background:rgba(0,0,0,0.55);
+  border:2px solid rgba(255,255,255,0.18);
+  border-radius:9px;cursor:pointer;font-size:1.15rem;
+  display:none;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+#vGpsBtn.active  {border-color:#4ade80;background:rgba(74,222,128,0.30);}
+#vGpsBtn.searching{border-color:#fbbf24;background:rgba(251,191,36,0.30);}
+
+/* Distance bar */
+#vDistBar{position:fixed;left:0;right:0;bottom:56px;height:68px;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.12);display:none;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 4px;}
 #vDistBar::-webkit-scrollbar{display:none;}
-.vdi{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;min-width:62px;border-right:1px solid var(--border);}
+.vdi{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;min-width:62px;border-right:1px solid rgba(255,255,255,0.1);}
 .vdi:last-child{border-right:none;}
-.vdi-lbl{font-size:0.52rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
-.vdi-yds{font-size:1.3rem;font-weight:900;font-family:'SF Mono','Fira Code',monospace;line-height:1;color:var(--text);}
-.vdi-yds.off{color:var(--muted);font-size:0.85rem;}
-#vNav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(13,15,18,0.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:none;align-items:center;}
-#vPrev,#vNext{width:52px;height:100%;background:transparent;border:none;color:var(--text);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-#vPrev:active,#vNext:active{background:rgba(255,255,255,0.06);}
+.vdi-lbl{font-size:0.54rem;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:2px;}
+.vdi-yds{font-size:1.4rem;font-weight:900;font-family:'SF Mono','Fira Code',monospace;line-height:1;color:#fff;}
+.vdi-yds.off{color:rgba(255,255,255,0.3);font-size:0.85rem;}
+
+/* Hole nav bar */
+#vNav{position:fixed;bottom:0;left:0;right:0;height:56px;background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.12);display:none;align-items:center;}
+#vPrev,#vNext{width:52px;height:100%;background:transparent;border:none;color:#fff;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#vPrev:active,#vNext:active{background:rgba(255,255,255,0.12);}
 #vPicker{flex:1;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;align-items:center;height:100%;}
 #vPicker::-webkit-scrollbar{display:none;}
-.vhbtn{flex-shrink:0;min-width:40px;height:100%;background:transparent;border:none;border-right:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 3px;}
-.vhbtn .vpar{font-size:0.48rem;color:var(--muted);line-height:1;}
-.vhbtn.active{color:var(--green);background:rgba(34,197,94,0.12);}
-.vhbtn.active .vpar{color:var(--green);opacity:0.7;}
+.vhbtn{flex-shrink:0;min-width:42px;height:100%;background:transparent;border:none;border-right:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);font-size:0.82rem;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 3px;}
+.vhbtn .vpar{font-size:0.48rem;color:rgba(255,255,255,0.3);line-height:1;}
+.vhbtn.active{color:#fff;background:rgba(34,197,94,0.30);border-right-color:rgba(255,255,255,0.12);}
+.vhbtn.active .vpar{color:rgba(255,255,255,0.75);}
 </style>
 </head>
 <body>
@@ -681,7 +713,6 @@
   <button class="vlbtn v-elev"     id="vlElev"  onclick="ViewerApp.toggleLayer('elev')">ELEV</button>
 </div>
 <button id="vGpsBtn" onclick="ViewerApp.toggleGps()">📍</button>
-<button id="vPrecacheBtn" onclick="ViewerApp.precacheRound()" title="Pre-load all hole maps for offline use" style="position:fixed;top:104px;left:8px;z-index:200;width:40px;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:800;color:rgba(255,255,255,0.4);display:none;align-items:center;justify-content:center;transition:all 0.15s;">⬇️</button>
 <div id="vDistBar"></div>
 <div id="vNav">
   <button id="vPrev" onclick="ViewerApp.prevHole()">◀</button>
@@ -1566,13 +1597,16 @@ const MapCtrl = {
 const SpineEdit = { showDistanceLabel(){}, hideDistanceLabel(){} };
 const UI = { renderSpineLegend(){} };
 
+// ── Viewer Schema Version ──────────────────────────────────────────────
+// Bump this when the viewer gains support for new fields from the mapper.
+// If a loaded file has a higher schemaVersion, the viewer will warn the user.
+const VIEWER_SCHEMA = 1;
+
 // ── Viewer State ───────────────────────────────────────────────────────
 const VS = {
   holes:[], cur:0, courseName:'',
   layers:{spine:true,targets:true,plan:true,elev:false},
-  gpsOn:false, gpsPos:null, gpsWatch:null,
-  _precaching:false, _precacheTimer:null,
-  _rendered:{}, _pendingPanListener:null
+  gpsOn:false, gpsPos:null, gpsWatch:null
 };
 
 function vDistYards(a,b){
@@ -1630,14 +1664,11 @@ const ViewerApp = {
     else if(data.holes) course=data;
     else{alert('No holes found in JSON file.');return;}
 
-    // Schema version check — warn if file is newer than viewer understands
-    const VIEWER_SCHEMA = 1;
-    const fileSchema = data.schemaVersion || course.schemaVersion || 0;
-    if (fileSchema > VIEWER_SCHEMA) {
-      Utils.toast('⚠️ Course file is schema v'+fileSchema+' — viewer supports v'+VIEWER_SCHEMA+'. Some features may not display correctly.', 'warn');
+    // Schema version check
+    if(data.schemaVersion && data.schemaVersion > VIEWER_SCHEMA){
+      Utils.toast(`⚠️ Course file is schema v${data.schemaVersion} — viewer supports v${VIEWER_SCHEMA}. Update the viewer for full compatibility.`,'warn',5000);
     }
 
-    VS._rendered={}; // reset render cache for new course
     VS.courseName=course.name||'Course';
     VS.holes=(course.holes||[]).map(h=>{
       const hole=Object.assign({},h);
@@ -1673,7 +1704,6 @@ const ViewerApp = {
     document.getElementById('vGpsBtn').style.display='flex';
     document.getElementById('vDistBar').style.display='flex';
     document.getElementById('vNav').style.display='flex';
-    const pcBtn=document.getElementById('vPrecacheBtn'); if(pcBtn) pcBtn.style.display='flex';
     document.getElementById('vCourseName').textContent=VS.courseName;
 
     this._buildPicker();
@@ -1692,61 +1722,6 @@ const ViewerApp = {
     });
   },
 
-  // ── Lightweight pan-only — used by precache, does NOT re-render markers ──
-  _panToHole(idx){
-    if(!gmap) return;
-    // Cancel any pending idle listener
-    if(VS._pendingPanListener){
-      google.maps.event.removeListener(VS._pendingPanListener);
-      VS._pendingPanListener=null;
-    }
-    const spine=VS.holes[idx].spine||{};
-    const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
-    if(!pts.length) return;
-    const doPan=()=>{
-      VS._pendingPanListener=null;
-      if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
-      const b=new google.maps.LatLngBounds();
-      pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
-      gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
-    };
-    doPan();
-  },
-
-  // ── Ensure markers for a hole are rendered exactly once, then cached ──
-  _ensureHoleRendered(idx){
-    if(VS._rendered[idx]) return;
-    State.labelMode=true; State.fairwayOnly=false;
-    State.planVisible=VS.layers.plan; State.mode='view';
-    State.currentHole=idx;
-    MapCtrl.clearMarkersForHole(idx);
-    MapCtrl.clearSpineMarkers();
-    MapCtrl.renderHoleMarkers(idx);
-    MapCtrl.renderSpineMarkers(idx);
-    VS._rendered[idx]=true;
-  },
-
-  // ── Show/hide cached markers for a hole without re-rendering ──
-  _applyLayerVisibility(){
-    // Targets
-    State.markers.forEach(m=>{
-      if(m.holeIdx!==VS.cur) return;
-      const show=VS.layers.targets;
-      if(m.marker&&m.marker.setMap) m.marker.setMap(show?gmap:null);
-      if(m.poly&&m.poly.setMap)     m.poly.setMap(show?gmap:null);
-      if(m.line&&m.line.setMap)     m.line.setMap(show?gmap:null);
-    });
-    (State._lineOverlays||[]).forEach(o=>o.setMap(VS.layers.targets?gmap:null));
-    // Spine
-    const showSpine=VS.layers.spine||VS.layers.elev;
-    State.spineMarkers.forEach(m=>m.setMap(showSpine?gmap:null));
-    if(State._spineLine) State._spineLine.setMap(VS.layers.spine?gmap:null);
-    (State._spineLabels||[]).forEach(m=>m.setMap(VS.layers.spine?gmap:null));
-    (State._elevDots||[]).forEach(c=>c.setMap(VS.layers.elev?gmap:null));
-    // Plan
-    if(State.planLine) State.planLine.setMap(VS.layers.plan?gmap:null);
-  },
-
   selectHole(idx){
     VS.cur=idx;
     State.currentHole=idx;
@@ -1756,10 +1731,30 @@ const ViewerApp = {
     document.querySelectorAll('.vhbtn').forEach((b,i)=>b.classList.toggle('active',i===idx));
     const ab=document.querySelectorAll('.vhbtn')[idx];
     if(ab) ab.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
-    this._ensureHoleRendered(idx);
-    this._applyLayerVisibility();
+
+    State.labelMode=true;
+    State.fairwayOnly=false;
+    State.planVisible=VS.layers.plan;
+    State.mode='view';
+
+    MapCtrl.clearMarkersForHole(idx);
+    MapCtrl.clearSpineMarkers();
+    if(VS.layers.targets) MapCtrl.renderHoleMarkers(idx);
+    if(VS.layers.spine||VS.layers.elev) MapCtrl.renderSpineMarkers(idx);
+
     this._panToHole(idx);
     this._renderDistBar();
+  },
+
+  _panToHole(idx){
+    if(!gmap) return;
+    const spine=VS.holes[idx].spine||{};
+    const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
+    if(!pts.length) return;
+    if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
+    const b=new google.maps.LatLngBounds();
+    pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
+    gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
   },
 
   toggleLayer(key){
@@ -1767,46 +1762,7 @@ const ViewerApp = {
     const ids={spine:'vlSpine',targets:'vlTgts',plan:'vlPlan',elev:'vlElev'};
     const btn=document.getElementById(ids[key]);
     if(btn) btn.classList.toggle('on',VS.layers[key]);
-    // If hole not yet rendered, render it now; otherwise just toggle visibility
-    if(!VS._rendered[VS.cur]) this._ensureHoleRendered(VS.cur);
-    this._applyLayerVisibility();
-  },
-
-  precacheRound(){
-    const btn=document.getElementById('vPrecacheBtn');
-    if(VS._precaching){
-      clearTimeout(VS._precacheTimer);
-      VS._precaching=false;
-      btn.textContent='⬇️'; btn.style.borderColor=''; btn.style.color='';
-      Utils.toast('Pre-cache cancelled');
-      return;
-    }
-    const total=VS.holes.length;
-    if(!total){Utils.toast('No holes loaded','err');return;}
-    VS._precaching=true;
-    btn.style.borderColor='#fbbf24';
-    Utils.toast('Pre-loading '+total+' holes — tap ⬇️ to cancel');
-    // Save current hole to restore after
-    const savedHole=VS.cur;
-    let idx=0;
-    const next=()=>{
-      if(!VS._precaching) return;
-      if(idx>=total){
-        VS._precaching=false;
-        btn.textContent='✓'; btn.style.borderColor='#4ade80'; btn.style.color='#4ade80';
-        Utils.toast('All '+total+' holes pre-loaded ✓');
-        // Return to original hole
-        this.selectHole(savedHole);
-        setTimeout(()=>{btn.textContent='⬇️';btn.style.borderColor='';btn.style.color='';},3000);
-        return;
-      }
-      btn.textContent=(idx+1); btn.style.borderColor='#fbbf24'; btn.style.color='#fbbf24';
-      // Pan only — don't call selectHole (avoids marker thrash and button state changes)
-      this._panToHole(idx);
-      idx++;
-      VS._precacheTimer=setTimeout(next,1800);
-    };
-    next();
+    this.selectHole(VS.cur);
   },
 
   prevHole(){if(VS.cur>0)this.selectHole(VS.cur-1);},
