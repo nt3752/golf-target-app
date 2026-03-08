@@ -620,15 +620,15 @@
 #vHoleInfo span{color:var(--text);}
 #viewerMap{position:fixed;top:48px;left:0;right:0;bottom:calc(56px + 68px);}
 #vLayers{position:fixed;top:56px;right:8px;z-index:200;display:none;flex-direction:column;gap:5px;}
-.vlbtn{width:40px;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:0.6rem;font-weight:800;letter-spacing:0.3px;color:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;text-transform:uppercase;line-height:1.2;text-align:center;transition:all 0.15s;}
-.vlbtn.on{color:var(--text);border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.06);}
-.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.15);}
-.vlbtn.on.v-tgt{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.15);}
-.vlbtn.on.v-plan{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.15);}
-.vlbtn.on.v-elev{border-color:#34d399;color:#34d399;background:rgba(52,211,153,0.15);}
-#vGpsBtn{position:fixed;top:56px;left:8px;z-index:200;width:40px;height:40px;background:rgba(13,15,18,0.88);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:1.1rem;display:none;align-items:center;justify-content:center;}
-#vGpsBtn.active{border-color:var(--green);background:rgba(34,197,94,0.12);}
-#vGpsBtn.searching{border-color:#fbbf24;background:rgba(251,191,36,0.1);}
+.vlbtn{width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:0.6rem;font-weight:800;letter-spacing:0.3px;color:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;text-transform:uppercase;line-height:1.2;text-align:center;transition:all 0.2s;}
+.vlbtn.on{color:#fff;border-color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.18);}
+.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.22);}
+.vlbtn.on.v-tgt{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.22);}
+.vlbtn.on.v-plan{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.22);}
+.vlbtn.on.v-elev{border-color:#34d399;color:#34d399;background:rgba(52,211,153,0.22);}
+#vGpsBtn{position:fixed;top:56px;left:8px;z-index:200;width:40px;height:40px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:8px;cursor:pointer;font-size:1.1rem;display:none;align-items:center;justify-content:center;transition:all 0.2s;}
+#vGpsBtn.active{border-color:var(--green);background:rgba(34,197,94,0.22);color:var(--green);}
+#vGpsBtn.searching{border-color:#fbbf24;background:rgba(251,191,36,0.22);}
 #vDistBar{position:fixed;left:0;right:0;bottom:56px;height:68px;background:rgba(13,15,18,0.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);display:none;align-items:center;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 4px;}
 #vDistBar::-webkit-scrollbar{display:none;}
 .vdi{flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 12px;min-width:62px;border-right:1px solid var(--border);}
@@ -1571,7 +1571,8 @@ const VS = {
   holes:[], cur:0, courseName:'',
   layers:{spine:true,targets:true,plan:true,elev:false},
   gpsOn:false, gpsPos:null, gpsWatch:null,
-  _precaching:false, _precacheTimer:null
+  _precaching:false, _precacheTimer:null,
+  _rendered:{}, _pendingPanListener:null
 };
 
 function vDistYards(a,b){
@@ -1636,6 +1637,7 @@ const ViewerApp = {
       Utils.toast('⚠️ Course file is schema v'+fileSchema+' — viewer supports v'+VIEWER_SCHEMA+'. Some features may not display correctly.', 'warn');
     }
 
+    VS._rendered={}; // reset render cache for new course
     VS.courseName=course.name||'Course';
     VS.holes=(course.holes||[]).map(h=>{
       const hole=Object.assign({},h);
@@ -1690,6 +1692,61 @@ const ViewerApp = {
     });
   },
 
+  // ── Lightweight pan-only — used by precache, does NOT re-render markers ──
+  _panToHole(idx){
+    if(!gmap) return;
+    // Cancel any pending idle listener
+    if(VS._pendingPanListener){
+      google.maps.event.removeListener(VS._pendingPanListener);
+      VS._pendingPanListener=null;
+    }
+    const spine=VS.holes[idx].spine||{};
+    const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
+    if(!pts.length) return;
+    const doPan=()=>{
+      VS._pendingPanListener=null;
+      if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
+      const b=new google.maps.LatLngBounds();
+      pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
+      gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
+    };
+    doPan();
+  },
+
+  // ── Ensure markers for a hole are rendered exactly once, then cached ──
+  _ensureHoleRendered(idx){
+    if(VS._rendered[idx]) return;
+    State.labelMode=true; State.fairwayOnly=false;
+    State.planVisible=VS.layers.plan; State.mode='view';
+    State.currentHole=idx;
+    MapCtrl.clearMarkersForHole(idx);
+    MapCtrl.clearSpineMarkers();
+    MapCtrl.renderHoleMarkers(idx);
+    MapCtrl.renderSpineMarkers(idx);
+    VS._rendered[idx]=true;
+  },
+
+  // ── Show/hide cached markers for a hole without re-rendering ──
+  _applyLayerVisibility(){
+    // Targets
+    State.markers.forEach(m=>{
+      if(m.holeIdx!==VS.cur) return;
+      const show=VS.layers.targets;
+      if(m.marker&&m.marker.setMap) m.marker.setMap(show?gmap:null);
+      if(m.poly&&m.poly.setMap)     m.poly.setMap(show?gmap:null);
+      if(m.line&&m.line.setMap)     m.line.setMap(show?gmap:null);
+    });
+    (State._lineOverlays||[]).forEach(o=>o.setMap(VS.layers.targets?gmap:null));
+    // Spine
+    const showSpine=VS.layers.spine||VS.layers.elev;
+    State.spineMarkers.forEach(m=>m.setMap(showSpine?gmap:null));
+    if(State._spineLine) State._spineLine.setMap(VS.layers.spine?gmap:null);
+    (State._spineLabels||[]).forEach(m=>m.setMap(VS.layers.spine?gmap:null));
+    (State._elevDots||[]).forEach(c=>c.setMap(VS.layers.elev?gmap:null));
+    // Plan
+    if(State.planLine) State.planLine.setMap(VS.layers.plan?gmap:null);
+  },
+
   selectHole(idx){
     VS.cur=idx;
     State.currentHole=idx;
@@ -1699,35 +1756,10 @@ const ViewerApp = {
     document.querySelectorAll('.vhbtn').forEach((b,i)=>b.classList.toggle('active',i===idx));
     const ab=document.querySelectorAll('.vhbtn')[idx];
     if(ab) ab.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
-
-    State.labelMode=true;
-    State.fairwayOnly=false;
-    State.planVisible=VS.layers.plan;
-    State.mode='view';
-
-    MapCtrl.clearMarkersForHole(idx);
-    MapCtrl.clearSpineMarkers();
-    if(VS.layers.targets) MapCtrl.renderHoleMarkers(idx);
-    if(VS.layers.spine||VS.layers.elev) MapCtrl.renderSpineMarkers(idx);
-
+    this._ensureHoleRendered(idx);
+    this._applyLayerVisibility();
     this._panToHole(idx);
     this._renderDistBar();
-  },
-
-  _panToHole(idx){
-    if(!gmap) return;
-    const spine=VS.holes[idx].spine||{};
-    const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
-    if(!pts.length) return;
-    const doPan=()=>{
-      if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
-      const b=new google.maps.LatLngBounds();
-      pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
-      gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
-    };
-    // If map is already idle fire immediately, else wait for next idle
-    if(gmap.getBounds()) { doPan(); }
-    else { google.maps.event.addListenerOnce(gmap,'idle',doPan); }
   },
 
   toggleLayer(key){
@@ -1735,16 +1767,17 @@ const ViewerApp = {
     const ids={spine:'vlSpine',targets:'vlTgts',plan:'vlPlan',elev:'vlElev'};
     const btn=document.getElementById(ids[key]);
     if(btn) btn.classList.toggle('on',VS.layers[key]);
-    this.selectHole(VS.cur);
+    // If hole not yet rendered, render it now; otherwise just toggle visibility
+    if(!VS._rendered[VS.cur]) this._ensureHoleRendered(VS.cur);
+    this._applyLayerVisibility();
   },
 
   precacheRound(){
     const btn=document.getElementById('vPrecacheBtn');
     if(VS._precaching){
-      // Cancel if already running
       clearTimeout(VS._precacheTimer);
       VS._precaching=false;
-      btn.textContent='⬇️'; btn.style.borderColor='';
+      btn.textContent='⬇️'; btn.style.borderColor=''; btn.style.color='';
       Utils.toast('Pre-cache cancelled');
       return;
     }
@@ -1753,32 +1786,25 @@ const ViewerApp = {
     VS._precaching=true;
     btn.style.borderColor='#fbbf24';
     Utils.toast('Pre-loading '+total+' holes — tap ⬇️ to cancel');
-
+    // Save current hole to restore after
+    const savedHole=VS.cur;
     let idx=0;
     const next=()=>{
       if(!VS._precaching) return;
       if(idx>=total){
         VS._precaching=false;
-        btn.textContent='✓';
-        btn.style.borderColor='#4ade80';
-        btn.style.color='#4ade80';
+        btn.textContent='✓'; btn.style.borderColor='#4ade80'; btn.style.color='#4ade80';
         Utils.toast('All '+total+' holes pre-loaded ✓');
-        // Reset button after 3s
-        setTimeout(()=>{
-          btn.textContent='⬇️';
-          btn.style.borderColor='';
-          btn.style.color='';
-        },3000);
+        // Return to original hole
+        this.selectHole(savedHole);
+        setTimeout(()=>{btn.textContent='⬇️';btn.style.borderColor='';btn.style.color='';},3000);
         return;
       }
-      // Show progress — hole number with amber highlight
-      btn.textContent=(idx+1);
-      btn.style.borderColor='#fbbf24';
-      btn.style.color='#fbbf24';
-      this.selectHole(idx);
+      btn.textContent=(idx+1); btn.style.borderColor='#fbbf24'; btn.style.color='#fbbf24';
+      // Pan only — don't call selectHole (avoids marker thrash and button state changes)
+      this._panToHole(idx);
       idx++;
-      // Wait 1.8s per hole — enough for tiles to load at zoom 17-18
-      VS._precacheTimer=setTimeout(next, 1800);
+      VS._precacheTimer=setTimeout(next,1800);
     };
     next();
   },
