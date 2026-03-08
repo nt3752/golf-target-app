@@ -620,12 +620,12 @@
 #vHoleInfo span{color:var(--text);}
 #viewerMap{position:fixed;top:48px;left:0;right:0;bottom:calc(56px + 68px);}
 #vLayers{position:fixed;top:56px;right:8px;z-index:200;display:none;flex-direction:column;gap:5px;}
-.vlbtn{width:40px;height:40px;background:rgba(13,15,18,0.88);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.6rem;font-weight:800;letter-spacing:0.3px;color:var(--muted);display:flex;align-items:center;justify-content:center;text-transform:uppercase;line-height:1.2;text-align:center;transition:all 0.15s;}
-.vlbtn.on{color:var(--text);border-color:rgba(255,255,255,0.25);}
-.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.12);}
-.vlbtn.on.v-tgt{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.12);}
-.vlbtn.on.v-plan{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.12);}
-.vlbtn.on.v-elev{border-color:#34d399;color:#34d399;background:rgba(52,211,153,0.12);}
+.vlbtn{width:40px;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:0.6rem;font-weight:800;letter-spacing:0.3px;color:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;text-transform:uppercase;line-height:1.2;text-align:center;transition:all 0.15s;}
+.vlbtn.on{color:var(--text);border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.06);}
+.vlbtn.on.v-spine{border-color:#fbbf24;color:#fbbf24;background:rgba(251,191,36,0.15);}
+.vlbtn.on.v-tgt{border-color:#06b6d4;color:#06b6d4;background:rgba(6,182,212,0.15);}
+.vlbtn.on.v-plan{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,0.15);}
+.vlbtn.on.v-elev{border-color:#34d399;color:#34d399;background:rgba(52,211,153,0.15);}
 #vGpsBtn{position:fixed;top:56px;left:8px;z-index:200;width:40px;height:40px;background:rgba(13,15,18,0.88);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:1.1rem;display:none;align-items:center;justify-content:center;}
 #vGpsBtn.active{border-color:var(--green);background:rgba(34,197,94,0.12);}
 #vGpsBtn.searching{border-color:#fbbf24;background:rgba(251,191,36,0.1);}
@@ -681,7 +681,7 @@
   <button class="vlbtn v-elev"     id="vlElev"  onclick="ViewerApp.toggleLayer('elev')">ELEV</button>
 </div>
 <button id="vGpsBtn" onclick="ViewerApp.toggleGps()">📍</button>
-<button id="vPrecacheBtn" onclick="ViewerApp.precacheRound()" title="Pre-load all hole maps for offline use" style="position:fixed;top:104px;left:8px;z-index:200;width:40px;height:40px;background:rgba(13,15,18,0.88);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.9rem;display:none;align-items:center;justify-content:center;">⬇️</button>
+<button id="vPrecacheBtn" onclick="ViewerApp.precacheRound()" title="Pre-load all hole maps for offline use" style="position:fixed;top:104px;left:8px;z-index:200;width:40px;height:40px;background:transparent;border:1px solid rgba(255,255,255,0.15);border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:800;color:rgba(255,255,255,0.4);display:none;align-items:center;justify-content:center;transition:all 0.15s;">⬇️</button>
 <div id="vDistBar"></div>
 <div id="vNav">
   <button id="vPrev" onclick="ViewerApp.prevHole()">◀</button>
@@ -1719,10 +1719,15 @@ const ViewerApp = {
     const spine=VS.holes[idx].spine||{};
     const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
     if(!pts.length) return;
-    if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
-    const b=new google.maps.LatLngBounds();
-    pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
-    gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
+    const doPan=()=>{
+      if(pts.length===1){gmap.panTo({lat:pts[0].lat,lng:pts[0].lon});gmap.setZoom(18);return;}
+      const b=new google.maps.LatLngBounds();
+      pts.forEach(p=>b.extend({lat:p.lat,lng:p.lon}));
+      gmap.fitBounds(b,{top:20,bottom:20,left:60,right:60});
+    };
+    // If map is already idle fire immediately, else wait for next idle
+    if(gmap.getBounds()) { doPan(); }
+    else { google.maps.event.addListenerOnce(gmap,'idle',doPan); }
   },
 
   toggleLayer(key){
@@ -1754,14 +1759,22 @@ const ViewerApp = {
       if(!VS._precaching) return;
       if(idx>=total){
         VS._precaching=false;
-        btn.textContent='✓'; btn.style.borderColor='#4ade80';
+        btn.textContent='✓';
+        btn.style.borderColor='#4ade80';
+        btn.style.color='#4ade80';
         Utils.toast('All '+total+' holes pre-loaded ✓');
         // Reset button after 3s
-        setTimeout(()=>{btn.textContent='⬇️';btn.style.borderColor='';},3000);
+        setTimeout(()=>{
+          btn.textContent='⬇️';
+          btn.style.borderColor='';
+          btn.style.color='';
+        },3000);
         return;
       }
-      // Show progress in button
-      btn.textContent=idx+1;
+      // Show progress — hole number with amber highlight
+      btn.textContent=(idx+1);
+      btn.style.borderColor='#fbbf24';
+      btn.style.color='#fbbf24';
       this.selectHole(idx);
       idx++;
       // Wait 1.8s per hole — enough for tiles to load at zoom 17-18
