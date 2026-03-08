@@ -1690,6 +1690,12 @@ const ViewerApp = {
     VS.holes.forEach((h,i)=>{ if(i<State.holes.length) Object.assign(State.holes[i],h); });
     State.courseName=VS.courseName;
 
+    // Clear all mapper markers before viewer takes over
+    State.markers.forEach(m=>{try{m.marker.setMap(null);}catch(e){}});
+    State.markers=[];
+    MapCtrl.clearSpineMarkers();
+    (State._lineOverlays||[]).forEach(o=>o.setMap(null)); State._lineOverlays=[];
+
     // Move the live map into viewerMap div
     const vMapEl=document.getElementById('viewerMap');
     const mapDiv=gmap.getDiv();
@@ -1707,7 +1713,22 @@ const ViewerApp = {
     document.getElementById('vCourseName').textContent=VS.courseName;
 
     this._buildPicker();
-    this.selectHole(0);
+
+    // Pre-center on hole 1 tee immediately so the map isn't in a blank location
+    // while waiting for idle, then do a proper fitBounds once map is ready
+    const h0=VS.holes[0];
+    const spine0=h0&&h0.spine||{};
+    const firstPt=spine0.tee||spine0.flag||spine0.w1||spine0.w2;
+    if(firstPt&&firstPt.lat!=null){
+      gmap.setCenter({lat:firstPt.lat,lng:firstPt.lon});
+      gmap.setZoom(17);
+    }
+
+    // Wait for map to be fully rendered in its new container, then jump properly
+    google.maps.event.addListenerOnce(gmap,'idle',()=>{
+      this.selectHole(0);
+    });
+
     Utils.toast('Course loaded — tap 📍 for distances','ok',3000);
   },
 
@@ -1732,18 +1753,112 @@ const ViewerApp = {
     const ab=document.querySelectorAll('.vhbtn')[idx];
     if(ab) ab.scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
 
-    State.labelMode=true;
-    State.fairwayOnly=false;
-    State.planVisible=VS.layers.plan;
-    State.mode='view';
-
-    MapCtrl.clearMarkersForHole(idx);
-    MapCtrl.clearSpineMarkers();
-    if(VS.layers.targets) MapCtrl.renderHoleMarkers(idx);
-    if(VS.layers.spine||VS.layers.elev) MapCtrl.renderSpineMarkers(idx);
-
+    this._renderHole(idx);
     this._panToHole(idx);
     this._renderDistBar();
+  },
+
+  // Self-contained viewer render — owns _vOverlays, never touches mapper State.markers
+  _vOverlays: [],
+  _clearVOverlays(){
+    this._vOverlays.forEach(o=>{try{o.setMap(null);}catch(e){}});
+    this._vOverlays=[];
+    // Also clear mapper spine/line state so nothing bleeds through
+    MapCtrl.clearSpineMarkers();
+    (State._lineOverlays||[]).forEach(o=>o.setMap(null)); State._lineOverlays=[];
+  },
+
+  _renderHole(idx){
+    if(!gmap) return;
+    this._clearVOverlays();
+    const hole=VS.holes[idx]; if(!hole) return;
+    const spine=hole.spine||{};
+    const L=VS.layers;
+
+    // Spine line + markers
+    if(L.spine){
+      const pts=['tee','w1','w2','flag'].map(k=>spine[k]).filter(p=>p&&p.lat!=null);
+      if(pts.length>=2){
+        this._vOverlays.push(new google.maps.Polyline({
+          path:pts.map(p=>({lat:p.lat,lng:p.lon})),map:gmap,
+          strokeColor:'#facc15',strokeOpacity:0.9,strokeWeight:3,zIndex:5
+        }));
+      }
+      [{key:'tee',color:'#ffffff',lbl:'T'},{key:'w1',color:'#f97316',lbl:'W1'},
+       {key:'w2',color:'#f97316',lbl:'W2'},{key:'flag',color:'#fbbf24',lbl:'F'}]
+      .forEach(d=>{
+        const pt=spine[d.key]; if(!pt||pt.lat==null) return;
+        this._vOverlays.push(new google.maps.Marker({
+          position:{lat:pt.lat,lng:pt.lon},map:gmap,clickable:false,zIndex:20,
+          icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:d.color,fillOpacity:1,
+            strokeColor:'#000',strokeWeight:1.5,scale:d.key==='tee'?9:11},
+          label:{text:d.lbl,color:'#000',fontSize:'8px',fontWeight:'900'}
+        }));
+      });
+    }
+
+    // Targets
+    if(L.targets){
+      (hole.targets||[]).forEach(tgt=>{
+        const c=tgt.points&&tgt.points.C; if(!c||c.lat==null) return;
+        const col=CAT_COLOR[tgt.category]||'#e2e8f0';
+        // Shape / polygon
+        if(tgt.polyType){
+          const polyPts=Object.keys(tgt.points).filter(k=>k!=='C'&&k.startsWith('P'))
+            .sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)))
+            .map(k=>tgt.points[k]).filter(p=>p&&p.lat!=null);
+          if(polyPts.length>=3){
+            this._vOverlays.push(new google.maps.Polygon({
+              paths:polyPts.map(p=>({lat:p.lat,lng:p.lon})),map:gmap,
+              strokeColor:col,strokeOpacity:0.7,strokeWeight:1.5,
+              fillColor:col,fillOpacity:0.15,zIndex:3,clickable:false
+            }));
+          }
+        }
+        // Centre dot + label
+        this._vOverlays.push(new google.maps.Marker({
+          position:{lat:c.lat,lng:c.lon},map:gmap,clickable:false,zIndex:10,
+          icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:col,fillOpacity:0.9,
+            strokeColor:'#000',strokeWeight:1,scale:8},
+          label:{text:tgt.abbrev||'?',color:'#000',fontSize:'9px',fontWeight:'900'}
+        }));
+      });
+    }
+
+    // Plan line
+    if(L.plan&&hole.plan&&hole.plan.length){
+      const linePts=[];
+      if(spine.tee&&spine.tee.lat!=null) linePts.push({lat:spine.tee.lat,lng:spine.tee.lon});
+      hole.plan.forEach(p=>{
+        if(p.targetGPS&&p.targetGPS.lat!=null&&p.shotType!=='putt')
+          linePts.push({lat:p.targetGPS.lat,lng:p.targetGPS.lon});
+      });
+      if(linePts.length>=2){
+        this._vOverlays.push(new google.maps.Polyline({
+          path:linePts,map:gmap,strokeColor:'#60a5fa',strokeOpacity:0.8,strokeWeight:2.5,
+          icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'14px'}],zIndex:6
+        }));
+        linePts.slice(1).forEach((pt,i)=>{
+          this._vOverlays.push(new google.maps.Marker({
+            position:pt,map:gmap,clickable:false,zIndex:8,
+            icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:'#60a5fa',fillOpacity:0.9,
+              strokeColor:'#000',strokeWeight:1,scale:8},
+            label:{text:String(i+1),color:'#000',fontSize:'8px',fontWeight:'900'}
+          }));
+        });
+      }
+    }
+
+    // Elevation dots
+    if(L.elev){
+      (hole.elevationProfile||[]).slice(1,-1).forEach(pt=>{
+        this._vOverlays.push(new google.maps.Circle({
+          center:{lat:pt.lat,lng:pt.lon},radius:1.5,map:gmap,
+          strokeColor:'#34d399',strokeOpacity:0.9,strokeWeight:1,
+          fillColor:'#34d399',fillOpacity:0.7,clickable:false,zIndex:2
+        }));
+      });
+    }
   },
 
   _panToHole(idx){
@@ -1762,7 +1877,7 @@ const ViewerApp = {
     const ids={spine:'vlSpine',targets:'vlTgts',plan:'vlPlan',elev:'vlElev'};
     const btn=document.getElementById(ids[key]);
     if(btn) btn.classList.toggle('on',VS.layers[key]);
-    this.selectHole(VS.cur);
+    this._renderHole(VS.cur);  // re-render only, no pan
   },
 
   prevHole(){if(VS.cur>0)this.selectHole(VS.cur-1);},
