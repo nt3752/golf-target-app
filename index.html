@@ -681,6 +681,7 @@
   <button class="vlbtn v-elev"     id="vlElev"  onclick="ViewerApp.toggleLayer('elev')">ELEV</button>
 </div>
 <button id="vGpsBtn" onclick="ViewerApp.toggleGps()">📍</button>
+<button id="vPrecacheBtn" onclick="ViewerApp.precacheRound()" title="Pre-load all hole maps for offline use" style="position:fixed;top:104px;left:8px;z-index:200;width:40px;height:40px;background:rgba(13,15,18,0.88);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:0.9rem;display:none;align-items:center;justify-content:center;">⬇️</button>
 <div id="vDistBar"></div>
 <div id="vNav">
   <button id="vPrev" onclick="ViewerApp.prevHole()">◀</button>
@@ -1569,7 +1570,8 @@ const UI = { renderSpineLegend(){} };
 const VS = {
   holes:[], cur:0, courseName:'',
   layers:{spine:true,targets:true,plan:true,elev:false},
-  gpsOn:false, gpsPos:null, gpsWatch:null
+  gpsOn:false, gpsPos:null, gpsWatch:null,
+  _precaching:false, _precacheTimer:null
 };
 
 function vDistYards(a,b){
@@ -1627,6 +1629,13 @@ const ViewerApp = {
     else if(data.holes) course=data;
     else{alert('No holes found in JSON file.');return;}
 
+    // Schema version check — warn if file is newer than viewer understands
+    const VIEWER_SCHEMA = 1;
+    const fileSchema = data.schemaVersion || course.schemaVersion || 0;
+    if (fileSchema > VIEWER_SCHEMA) {
+      Utils.toast('⚠️ Course file is schema v'+fileSchema+' — viewer supports v'+VIEWER_SCHEMA+'. Some features may not display correctly.', 'warn');
+    }
+
     VS.courseName=course.name||'Course';
     VS.holes=(course.holes||[]).map(h=>{
       const hole=Object.assign({},h);
@@ -1662,6 +1671,7 @@ const ViewerApp = {
     document.getElementById('vGpsBtn').style.display='flex';
     document.getElementById('vDistBar').style.display='flex';
     document.getElementById('vNav').style.display='flex';
+    const pcBtn=document.getElementById('vPrecacheBtn'); if(pcBtn) pcBtn.style.display='flex';
     document.getElementById('vCourseName').textContent=VS.courseName;
 
     this._buildPicker();
@@ -1721,6 +1731,43 @@ const ViewerApp = {
     const btn=document.getElementById(ids[key]);
     if(btn) btn.classList.toggle('on',VS.layers[key]);
     this.selectHole(VS.cur);
+  },
+
+  precacheRound(){
+    const btn=document.getElementById('vPrecacheBtn');
+    if(VS._precaching){
+      // Cancel if already running
+      clearTimeout(VS._precacheTimer);
+      VS._precaching=false;
+      btn.textContent='⬇️'; btn.style.borderColor='';
+      Utils.toast('Pre-cache cancelled');
+      return;
+    }
+    const total=VS.holes.length;
+    if(!total){Utils.toast('No holes loaded','err');return;}
+    VS._precaching=true;
+    btn.style.borderColor='#fbbf24';
+    Utils.toast('Pre-loading '+total+' holes — tap ⬇️ to cancel');
+
+    let idx=0;
+    const next=()=>{
+      if(!VS._precaching) return;
+      if(idx>=total){
+        VS._precaching=false;
+        btn.textContent='✓'; btn.style.borderColor='#4ade80';
+        Utils.toast('All '+total+' holes pre-loaded ✓');
+        // Reset button after 3s
+        setTimeout(()=>{btn.textContent='⬇️';btn.style.borderColor='';},3000);
+        return;
+      }
+      // Show progress in button
+      btn.textContent=idx+1;
+      this.selectHole(idx);
+      idx++;
+      // Wait 1.8s per hole — enough for tiles to load at zoom 17-18
+      VS._precacheTimer=setTimeout(next, 1800);
+    };
+    next();
   },
 
   prevHole(){if(VS.cur>0)this.selectHole(VS.cur-1);},
