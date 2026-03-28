@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Course Viewer v2</title>
 <style>
   /* ── Reset & tokens ─────────────────────────────── */
@@ -615,21 +615,23 @@
 
 /* Header — white with strong green accent */
 #viewerHeader {
-  position:fixed;top:0;left:0;right:0;z-index:100;height:52px;
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:calc(52px + env(safe-area-inset-top));
+  padding-top:env(safe-area-inset-top);
   background:#ffffff;
   border-bottom:3px solid #15803d;
   box-shadow:0 2px 8px rgba(0,0,0,0.15);
-  display:none;align-items:center;gap:10px;padding:0 14px;
+  display:none;align-items:center;gap:10px;padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right));
 }
 #vCourseName{font-size:0.9rem;font-weight:900;color:#15803d;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.2px;}
 #vHoleInfo{font-size:0.78rem;font-weight:800;color:#6b7280;text-align:right;flex-shrink:0;line-height:1.4;}
 #vHoleInfo span{color:#111827;font-size:0.95rem;}
 
 /* Map sits above dist bar + nav */
-#viewerMap{position:fixed;top:52px;left:0;right:0;bottom:calc(64px + 80px);}
+#viewerMap{position:fixed;top:calc(52px + env(safe-area-inset-top));left:0;right:0;bottom:calc(64px + 80px + env(safe-area-inset-bottom));}
 
 /* Layer toggle buttons — float right, white cards */
-#vLayers{position:fixed;top:62px;right:10px;z-index:200;display:none;flex-direction:column;gap:7px;}
+#vLayers{position:fixed;top:calc(62px + env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:200;display:none;flex-direction:column;gap:7px;}
 .vlbtn{
   width:52px;height:52px;
   background:rgba(255,255,255,0.92);
@@ -655,7 +657,7 @@
 
 /* GPS button — white card, left side */
 #vGpsBtn{
-  position:fixed;top:62px;left:10px;z-index:200;
+  position:fixed;top:calc(62px + env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));z-index:200;
   width:52px;height:52px;
   background:rgba(255,255,255,0.92);
   border:2px solid #d1d5db;
@@ -669,12 +671,13 @@
 
 /* Distance bar — white, prominent */
 #vDistBar{
-  position:fixed;left:0;right:0;bottom:64px;height:80px;
+  position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));height:80px;
   background:#ffffff;
   border-top:2px solid #e5e7eb;
   box-shadow:0 -2px 8px rgba(0,0,0,0.08);
   display:none;align-items:center;
-  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:0 6px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+  padding:0 max(6px,env(safe-area-inset-left));
 }
 #vDistBar::-webkit-scrollbar{display:none;}
 .vdi{
@@ -696,14 +699,16 @@
 
 /* Hole nav bar — white, tall, big buttons */
 #vNav{
-  position:fixed;bottom:0;left:0;right:0;height:64px;
+  position:fixed;bottom:0;left:0;right:0;
+  height:calc(64px + env(safe-area-inset-bottom));
+  padding-bottom:env(safe-area-inset-bottom);
   background:#ffffff;
   border-top:2px solid #e5e7eb;
   box-shadow:0 -2px 8px rgba(0,0,0,0.08);
   display:none;align-items:center;
 }
 #vPrev,#vNext{
-  width:64px;height:100%;
+  width:max(64px,calc(env(safe-area-inset-left) + 52px));height:100%;
   background:transparent;border:none;
   color:#111827;font-size:1.7rem;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
