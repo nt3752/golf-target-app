@@ -1711,6 +1711,8 @@ const ViewerApp = {
         document.getElementById('loadJsonStatus').style.color='var(--green)';
         document.getElementById('loadJsonLabel').style.color='var(--green)';
         document.getElementById('loadJsonLabel').style.borderColor='var(--green)';
+        // Persist course JSON so it reloads automatically next session
+        try{localStorage.setItem('viewerCourseJSON', e.target.result);}catch(ex){}
         if(gmap) this._activateCourse();
       }catch(err){
         document.getElementById('loadJsonStatus').textContent='✗ Invalid JSON';
@@ -2013,6 +2015,20 @@ const ViewerApp = {
 
 // Restore API key
 try{const k=localStorage.getItem('mapperApiKey');if(k)document.getElementById('apiKeyInput').value=k;}catch(e){}
+
+// Restore course JSON — pre-load so loadMap() auto-activates it
+try{
+  const saved=localStorage.getItem('viewerCourseJSON');
+  if(saved){
+    const parsed=JSON.parse(saved);
+    ViewerApp._courseData=parsed;
+    const name=(parsed.courses&&parsed.courses[0])?parsed.courses[0].name:(parsed.name||'Saved course');
+    const statusEl=document.getElementById('loadJsonStatus');
+    const labelEl=document.getElementById('loadJsonLabel');
+    if(statusEl){statusEl.textContent='✓ '+name+' (saved)';statusEl.style.color='var(--green)';}
+    if(labelEl){labelEl.style.color='var(--green)';labelEl.style.borderColor='var(--green)';}
+  }
+}catch(e){}
 </script>
 </body>
 </html>
